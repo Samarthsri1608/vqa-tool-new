@@ -1,0 +1,25 @@
+{
+  "name": "vqa-tool",
+  "version": "1.0.0",
+  "description": "Visual Question Answering & Visual RAG tool powered by Gemini multimodal API",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "vqa",
+    "visual-question-answering",
+    "rag",
+    "multimodal",
+    "gemini"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

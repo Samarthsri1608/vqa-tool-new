@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Visual QA — Visual RAG Tool</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Marked.js for clean Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header & Navigation -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon">👁️</div>
+        <div>
+          <h1 class="logo-title">Visual QA <span class="badge">Visual RAG</span></h1>
+          <p class="logo-sub">Grounded multimodal question answering powered by Gemini</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <!-- Model Selector -->
+        <div class="control-group">
+          <label for="modelSelect" class="sr-only">Gemini Model</label>
+          <select id="modelSelect" class="select-input" title="Select Gemini Model">
+            <option value="gemini-3.5-flash-lite" selected>Gemini 3.5 Flash Lite (500 RPD / 15 RPM)</option>
+            <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+            <option value="gemini-flash-latest">Gemini Flash (Latest)</option>
+            <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+            <option value="gemini-pro-latest">Gemini Pro (Deep Reasoning)</option>
+          </select>
+        </div>
+
+        <!-- API Key Status & Settings Trigger -->
+        <button id="apiKeyToggleBtn" class="btn btn-secondary btn-icon" title="API Key Settings">
+          <span id="keyStatusDot" class="status-dot"></span>
+          <span id="keyStatusText">API Key</span>
+          <span class="icon">⚙️</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- API Key Settings Drawer / Banner -->
+    <div id="apiKeyDrawer" class="api-key-drawer hidden" role="region" aria-label="API Key Settings">
+      <div class="drawer-content">
+        <div class="drawer-header">
+          <h3>🔑 Gemini API Key Configuration</h3>
+          <button id="closeDrawerBtn" class="btn-close" aria-label="Close API Key settings">&times;</button>
+        </div>
+        <p class="drawer-desc">
+          Your key can be stored in the server's <code>.env</code> file (<code>GEMINI_API_KEY=...</code>) or entered below for this browser session.
+        </p>
+        <div class="drawer-form">
+          <input 
+            type="password" 
+            id="apiKeyInput" 
+            class="text-input" 
+            placeholder="Paste your Gemini API key (AIzaSy...)" 
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button id="saveApiKeyBtn" class="btn btn-primary">Save Key</button>
+          <button id="clearApiKeyBtn" class="btn btn-secondary">Clear</button>
+        </div>
+        <div id="keyNotice" class="key-notice"></div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-layout">
+      <!-- Left Panel: Image Upload & Preview -->
+      <section class="panel image-panel" aria-labelledby="imagePanelTitle">
+        <div class="panel-header">
+          <h2 id="imagePanelTitle" class="panel-title">1. Visual Source</h2>
+          <span class="panel-tag">Drag & drop or paste</span>
+        </div>
+
+        <!-- Drop Zone (shown when no image selected) -->
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Upload an image by clicking or dragging and dropping">
+          <input type="file" id="fileInput" accept="image/*" class="sr-only">
+          <div class="drop-zone-content">
+            <div class="upload-icon">📤</div>
+            <p class="drop-main-text"><strong>Choose an image</strong> or drag & drop here</p>
+            <p class="drop-sub-text">PNG, JPG, WEBP, GIF up to 25MB • Clipboard paste (Ctrl+V) supported</p>
+            <button type="button" class="btn btn-outline" id="browseBtn">Browse Files</button>
+          </div>
+        </div>
+
+        <!-- Image Preview Card (shown when image is loaded) -->
+        <div id="previewCard" class="preview-card hidden">
+          <div class="preview-media-container">
+            <img id="previewImage" src="" alt="Uploaded source for Visual Question Answering">
+          </div>
+          <div class="preview-meta">
+            <div class="file-details">
+              <span id="fileName" class="meta-name">image.png</span>
+              <span id="fileSize" class="meta-size">0 KB</span>
+              <span id="fileDimensions" class="meta-dim">0 x 0</span>
+            </div>
+            <button id="removeImageBtn" class="btn btn-danger-ghost btn-sm" title="Remove image">
+              <span>✕</span> Remove
+            </button>
+          </div>
+        </div>
+
+        <!-- Sample Images Section -->
+        <div class="sample-images-section">
+          <span class="sample-label">Or try a sample:</span>
+          <div class="sample-pills">
+            <button type="button" class="pill-btn" data-sample="receipt">🧾 Receipt / OCR</button>
+            <button type="button" class="pill-btn" data-sample="chart">📊 Sales Chart</button>
+            <button type="button" class="pill-btn" data-sample="diagram">🏗️ Architecture Diagram</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Query & Grounded Answer -->
+      <section class="panel qa-panel" aria-labelledby="qaPanelTitle">
+        <div class="panel-header">
+          <h2 id="qaPanelTitle" class="panel-title">2. Visual Query & RAG Answer</h2>
+          <span id="conversationCount" class="panel-tag hidden">Turn 1</span>
+        </div>
+
+        <!-- Conversation History Thread (if multiple turns) -->
+        <div id="conversationThread" class="conversation-thread hidden"></div>
+
+        <!-- Query Input Form -->
+        <form id="qaForm" class="qa-form">
+          <div class="quick-prompts" aria-label="Suggested questions">
+            <span class="quick-prompt-label">Quick Prompts:</span>
+            <button type="button" class="chip-btn" data-prompt="Extract all visible text, numbers, and headers from this image with high accuracy.">📄 Extract all text (OCR)</button>
+            <button type="button" class="chip-btn" data-prompt="Describe this image in detail, listing key objects, layout, and visual context.">🔍 Describe in detail</button>
+            <button type="button" class="chip-btn" data-prompt="Analyze the charts, graphs, or data points shown in this image and summarize key trends.">📊 Analyze data & chart</button>
+            <button type="button" class="chip-btn" data-prompt="List the main objects and their spatial positions (e.g. top-left, center, foreground).">📍 Detect objects & positions</button>
+          </div>
+
+          <div class="input-wrapper">
+            <label for="questionInput" class="sr-only">Ask a question about the image</label>
+            <textarea 
+              id="questionInput" 
+              class="question-textarea" 
+              placeholder="Ask anything about the image... (e.g. 'What is the total amount due?' or 'What does the blue label say?')"
+              rows="3"
+              required
+            ></textarea>
+            
+            <div class="input-actions">
+              <span class="keyboard-tip">Press <kbd>Ctrl/⌘</kbd> + <kbd>Enter</kbd> to ask</span>
+              <button type="submit" id="submitBtn" class="btn btn-primary btn-submit">
+                <span class="submit-spinner hidden"></span>
+                <span class="submit-text">Ask Gemini</span>
+                <span class="submit-arrow">→</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Dynamic Answer Display Container -->
+        <div id="answerSection" class="answer-section hidden" aria-live="polite">
+          <div class="answer-header">
+            <div class="answer-header-left">
+              <span class="sparkle-icon">✨</span>
+              <span class="answer-heading">Grounded Visual Answer</span>
+            </div>
+            <div class="answer-actions">
+              <span id="answerTimer" class="meta-badge">0.0s</span>
+              <button id="copyAnswerBtn" class="btn btn-secondary btn-sm" title="Copy answer to clipboard">
+                📋 Copy
+              </button>
+              <button id="newQuestionBtn" class="btn btn-secondary btn-sm" title="Ask another question about this image">
+                💬 Follow-up
+              </button>
+            </div>
+          </div>
+
+          <div id="answerBody" class="markdown-body answer-body">
+            <!-- Rendered markdown goes here -->
+          </div>
+
+          <div id="answerMeta" class="answer-footer-meta">
+            <!-- Metadata: tokens, model, finish reason -->
+          </div>
+        </div>
+
+        <!-- Loading State Skeleton -->
+        <div id="loadingState" class="loading-state hidden">
+          <div class="loading-spinner-ring"></div>
+          <p class="loading-title">Retrieving visual evidence & generating answer...</p>
+          <p class="loading-sub">Gemini is analyzing pixels, text, and visual relationships.</p>
+        </div>
+
+        <!-- Error Alert Container -->
+        <div id="errorAlert" class="error-alert hidden" role="alert">
+          <span class="error-icon">⚠️</span>
+          <div class="error-content">
+            <strong id="errorTitle">Request Error</strong>
+            <p id="errorMessage">Something went wrong.</p>
+          </div>
+          <button id="dismissErrorBtn" class="btn-close" aria-label="Dismiss error">&times;</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Visual Question Answering & Visual RAG • Grounded with Google Gemini</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
