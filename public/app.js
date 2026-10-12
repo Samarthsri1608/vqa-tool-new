@@ -1,9 +1,6 @@
 // State management
 const state = {
   currentImage: null, // { dataUrl, mimeType, name, size, width, height }
-  hasServerKey: false,
-  apiKey: localStorage.getItem('gemini_api_key') || '',
-  selectedModel: 'gemini-3.5-flash-lite',
   history: [], // [{ question, answer }]
   isLoading: false,
   timerInterval: null,
@@ -24,7 +21,6 @@ const removeImageBtn = document.getElementById('removeImageBtn');
 const qaForm = document.getElementById('qaForm');
 const questionInput = document.getElementById('questionInput');
 const submitBtn = document.getElementById('submitBtn');
-const modelSelect = document.getElementById('modelSelect');
 
 const answerSection = document.getElementById('answerSection');
 const answerBody = document.getElementById('answerBody');
@@ -41,100 +37,13 @@ const errorTitle = document.getElementById('errorTitle');
 const errorMessage = document.getElementById('errorMessage');
 const dismissErrorBtn = document.getElementById('dismissErrorBtn');
 
-// API Key Elements
-const apiKeyToggleBtn = document.getElementById('apiKeyToggleBtn');
-const apiKeyDrawer = document.getElementById('apiKeyDrawer');
-const closeDrawerBtn = document.getElementById('closeDrawerBtn');
-const apiKeyInput = document.getElementById('apiKeyInput');
-const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
-const clearApiKeyBtn = document.getElementById('clearApiKeyBtn');
-const keyNotice = document.getElementById('keyNotice');
-const keyStatusDot = document.getElementById('keyStatusDot');
-const keyStatusText = document.getElementById('keyStatusText');
-
 // Initialize Application
-async function init() {
+function init() {
   setupEventListeners();
-  await checkServerConfig();
-  updateKeyUI();
 }
 
-// 1. Server Configuration & Key Management
-async function checkServerConfig() {
-  try {
-    const res = await fetch('/api/config');
-    if (res.ok) {
-      const data = await res.json();
-      state.hasServerKey = Boolean(data.hasEnvKey);
-      if (data.defaultModel && !modelSelect.value) {
-        state.selectedModel = data.defaultModel;
-        modelSelect.value = data.defaultModel;
-      }
-    }
-  } catch (err) {
-    console.warn('Could not fetch server config:', err);
-  }
-}
-
-function updateKeyUI() {
-  const hasLocal = Boolean(state.apiKey);
-  const active = state.hasServerKey || hasLocal;
-
-  if (active) {
-    keyStatusDot.classList.add('active');
-    keyStatusText.textContent = hasLocal ? 'UI Key Saved' : 'Env Key Active';
-    keyNotice.className = 'key-notice success';
-    keyNotice.textContent = hasLocal
-      ? '✓ Using custom API key saved in browser storage.'
-      : '✓ Server .env key detected and ready.';
-  } else {
-    keyStatusDot.classList.remove('active');
-    keyStatusText.textContent = 'API Key Needed';
-    keyNotice.className = 'key-notice';
-    keyNotice.textContent = '⚠️ No API key found. Enter one above or add GEMINI_API_KEY to your .env file.';
-  }
-
-  if (hasLocal) {
-    apiKeyInput.value = state.apiKey;
-  }
-}
-
-// 2. Event Listeners Setup
+// Event Listeners Setup
 function setupEventListeners() {
-  // Key drawer
-  apiKeyToggleBtn.addEventListener('click', () => {
-    apiKeyDrawer.classList.toggle('hidden');
-    if (!apiKeyDrawer.classList.contains('hidden')) {
-      apiKeyInput.focus();
-    }
-  });
-
-  closeDrawerBtn.addEventListener('click', () => {
-    apiKeyDrawer.classList.add('hidden');
-  });
-
-  saveApiKeyBtn.addEventListener('click', () => {
-    const key = apiKeyInput.value.trim();
-    if (key) {
-      state.apiKey = key;
-      localStorage.setItem('gemini_api_key', key);
-      updateKeyUI();
-      apiKeyDrawer.classList.add('hidden');
-    }
-  });
-
-  clearApiKeyBtn.addEventListener('click', () => {
-    state.apiKey = '';
-    localStorage.removeItem('gemini_api_key');
-    apiKeyInput.value = '';
-    updateKeyUI();
-  });
-
-  // Model selection
-  modelSelect.addEventListener('change', (e) => {
-    state.selectedModel = e.target.value;
-  });
-
   // File browse & click
   browseBtn.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -235,9 +144,9 @@ function setupEventListeners() {
     const textToCopy = answerBody.innerText || answerBody.textContent;
     if (textToCopy) {
       navigator.clipboard.writeText(textToCopy).then(() => {
-        const orig = copyAnswerBtn.innerHTML;
-        copyAnswerBtn.innerHTML = '✓ Copied!';
-        setTimeout(() => { copyAnswerBtn.innerHTML = orig; }, 1800);
+        const orig = copyAnswerBtn.textContent;
+        copyAnswerBtn.textContent = 'Copied';
+        setTimeout(() => { copyAnswerBtn.textContent = orig; }, 1800);
       });
     }
   });
@@ -255,7 +164,7 @@ function setupEventListeners() {
   });
 }
 
-// 3. File Processing & Image Loading
+// File Processing & Image Loading
 function handleFileSelected(file, customName) {
   if (!file.type.startsWith('image/')) {
     showError('Unsupported file type', 'Please select a valid image file.');
@@ -325,7 +234,7 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-// 4. Built-in Canvas Sample Generators (Self-contained, Zero external dependencies)
+// Built-in Canvas Sample Generators
 function loadSampleImage(type) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
@@ -334,16 +243,13 @@ function loadSampleImage(type) {
     canvas.width = 600;
     canvas.height = 700;
     
-    // Receipt background
     ctx.fillStyle = '#faf8f5';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Receipt borders / decorative tear line
     ctx.strokeStyle = '#e0ded8';
     ctx.lineWidth = 2;
     ctx.strokeRect(20, 20, 560, 660);
 
-    // Text details
     ctx.fillStyle = '#222';
     ctx.textAlign = 'center';
     ctx.font = 'bold 24px monospace';
@@ -354,7 +260,6 @@ function loadSampleImage(type) {
     ctx.fillText('Date: 2026-10-12   Time: 14:32:05', 300, 135);
     ctx.fillText('Receipt #RCP-90214', 300, 155);
 
-    // Divider
     ctx.beginPath();
     ctx.setLineDash([6, 4]);
     ctx.moveTo(40, 175);
@@ -362,7 +267,6 @@ function loadSampleImage(type) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Items table
     ctx.textAlign = 'left';
     ctx.font = 'bold 15px monospace';
     ctx.fillText('ITEM                      QTY   PRICE    TOTAL', 40, 205);
@@ -382,7 +286,6 @@ function loadSampleImage(type) {
       y += 28;
     });
 
-    // Divider
     ctx.beginPath();
     ctx.setLineDash([6, 4]);
     ctx.moveTo(40, y + 10);
@@ -390,7 +293,6 @@ function loadSampleImage(type) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Totals
     y += 45;
     ctx.font = '15px monospace';
     ctx.fillText('Subtotal:                               $41.50', 40, y);
@@ -408,29 +310,25 @@ function loadSampleImage(type) {
     canvas.width = 720;
     canvas.height = 480;
 
-    // Background
     ctx.fillStyle = '#161b22';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Title
     ctx.fillStyle = '#f0f6fc';
     ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('Q1-Q4 Enterprise Cloud Revenue & Profit (2026)', 40, 45);
+    ctx.fillText('Q1-Q4 Enterprise Cloud Revenue & Profit', 40, 45);
 
-    // Chart Area
     const barWidth = 60;
     const spacing = 140;
     const startX = 100;
     const baselineY = 380;
 
     const data = [
-      { quarter: 'Q1 2026', rev: 180, profit: 80, colorR: '#1f6feb', colorP: '#238636' },
-      { quarter: 'Q2 2026', rev: 230, profit: 110, colorR: '#1f6feb', colorP: '#238636' },
-      { quarter: 'Q3 2026', rev: 290, profit: 155, colorR: '#1f6feb', colorP: '#238636' },
-      { quarter: 'Q4 2026', rev: 350, profit: 195, colorR: '#1f6feb', colorP: '#238636' }
+      { quarter: 'Q1', rev: 180, profit: 80, colorR: '#1f6feb', colorP: '#238636' },
+      { quarter: 'Q2', rev: 230, profit: 110, colorR: '#1f6feb', colorP: '#238636' },
+      { quarter: 'Q3', rev: 290, profit: 155, colorR: '#1f6feb', colorP: '#238636' },
+      { quarter: 'Q4', rev: 350, profit: 195, colorR: '#1f6feb', colorP: '#238636' }
     ];
 
-    // Grid lines
     ctx.strokeStyle = '#30363d';
     ctx.lineWidth = 1;
     for (let h = 0; h <= 400; h += 100) {
@@ -445,27 +343,22 @@ function loadSampleImage(type) {
       ctx.fillText(`$${h}M`, 45, lineY + 4);
     }
 
-    // Draw bars
     data.forEach((d, index) => {
       const x = startX + index * spacing;
       const revH = d.rev * 0.7;
       const profH = d.profit * 0.7;
 
-      // Revenue bar
       ctx.fillStyle = d.colorR;
       ctx.fillRect(x, baselineY - revH, barWidth / 2, revH);
 
-      // Profit bar
       ctx.fillStyle = d.colorP;
       ctx.fillRect(x + barWidth / 2 + 4, baselineY - profH, barWidth / 2, profH);
 
-      // Labels
       ctx.fillStyle = '#f0f6fc';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(d.quarter, x + barWidth / 2, baselineY + 25);
 
-      // Values above bars
       ctx.font = '11px sans-serif';
       ctx.fillStyle = '#58a6ff';
       ctx.fillText(`$${d.rev}M`, x + 15, baselineY - revH - 8);
@@ -473,7 +366,6 @@ function loadSampleImage(type) {
       ctx.fillText(`$${d.profit}M`, x + 45, baselineY - profH - 8);
     });
 
-    // Legend
     ctx.textAlign = 'left';
     ctx.fillStyle = '#1f6feb';
     ctx.fillRect(480, 75, 14, 14);
@@ -492,7 +384,6 @@ function loadSampleImage(type) {
     canvas.width = 720;
     canvas.height = 420;
 
-    // Background
     ctx.fillStyle = '#0d1117';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -500,7 +391,6 @@ function loadSampleImage(type) {
     ctx.font = 'bold 18px sans-serif';
     ctx.fillText('System Architecture: Multimodal Visual RAG Service', 40, 40);
 
-    // Draw boxes
     function drawBox(x, y, w, h, title, sub, color) {
       ctx.fillStyle = '#161b22';
       ctx.strokeStyle = color || '#30363d';
@@ -521,12 +411,11 @@ function loadSampleImage(type) {
 
     drawBox(40, 90, 160, 80, 'Client Web UI', 'HTML / CSS / JS', '#58a6ff');
     drawBox(270, 90, 170, 80, 'API Gateway', 'Express / Node.js', '#a371f7');
-    drawBox(510, 90, 170, 80, 'Gemini 2.5 Flash', 'Multimodal Vision', '#3fb950');
+    drawBox(510, 90, 170, 80, 'Gemini 3.5 Flash Lite', 'Multimodal Vision', '#3fb950');
 
     drawBox(270, 240, 170, 80, 'Visual Grounding', 'RAG System Prompt', '#d29922');
     drawBox(510, 240, 170, 80, 'Response Parser', 'Token Usage & MD', '#f0883e');
 
-    // Arrows
     function drawArrow(x1, y1, x2, y2) {
       ctx.strokeStyle = '#58a6ff';
       ctx.lineWidth = 2;
@@ -535,7 +424,6 @@ function loadSampleImage(type) {
       ctx.lineTo(x2, y2);
       ctx.stroke();
 
-      // Arrow head
       const angle = Math.atan2(y2 - y1, x2 - x1);
       ctx.fillStyle = '#58a6ff';
       ctx.beginPath();
@@ -571,7 +459,7 @@ function finishLoadingCanvas(canvas, filename) {
   hideError();
 }
 
-// 5. Form Submission & API Call
+// Form Submission & API Call
 async function handleFormSubmit(e) {
   e.preventDefault();
 
@@ -584,15 +472,7 @@ async function handleFormSubmit(e) {
   }
 
   if (!state.currentImage) {
-    showError('No Image Provided', 'Please upload or drop an image before asking questions.');
-    return;
-  }
-
-  const hasKey = Boolean(state.apiKey || state.hasServerKey);
-  if (!hasKey) {
-    apiKeyDrawer.classList.remove('hidden');
-    apiKeyInput.focus();
-    showError('Gemini API Key Required', 'Please enter your Gemini API key in the settings drawer or add GEMINI_API_KEY to your server .env file.');
+    showError('No Image Provided', 'Please upload or drop an image before submitting.');
     return;
   }
 
@@ -604,8 +484,6 @@ async function handleFormSubmit(e) {
       image: state.currentImage.dataUrl,
       mimeType: state.currentImage.mimeType,
       question: question,
-      apiKey: state.apiKey || undefined,
-      model: state.selectedModel,
       history: state.history
     };
 
@@ -635,15 +513,18 @@ async function handleFormSubmit(e) {
 
   } catch (err) {
     console.error('Error during VQA request:', err);
-    showError('Gemini Analysis Failed', err.message || 'Failed to communicate with Gemini API.');
+    showError('Request Failed', err.message || 'Failed to communicate with the server.');
   } finally {
     setLoading(false);
   }
 }
 
-// 6. Answer & Metadata Rendering
+// Answer & Metadata Rendering
 function renderAnswer(question, data) {
-  const answerMarkdown = data.answer || 'No answer generated.';
+  let answerMarkdown = data.answer || 'No answer generated.';
+
+  // Basic cleanup for math LaTeX delimiters if needed
+  answerMarkdown = answerMarkdown.replace(/\\mathbf\{([^}]+)\}/g, '**$1**');
 
   // Render markdown safely
   if (window.marked && typeof window.marked.parse === 'function') {
@@ -652,12 +533,12 @@ function renderAnswer(question, data) {
     answerBody.innerText = answerMarkdown;
   }
 
-  // Elapsed time badge
+  // Latency badge
   const elapsedSec = (data.elapsedMs / 1000).toFixed(2);
-  answerTimer.textContent = `⚡ ${elapsedSec}s`;
+  answerTimer.textContent = `${elapsedSec}s`;
 
   // Footer metadata
-  let metaHtml = `<span>Model: <strong>${data.model || state.selectedModel}</strong></span>`;
+  let metaHtml = '';
   if (data.usageMetadata) {
     const totalTokens = data.usageMetadata.totalTokenCount || 0;
     metaHtml += `<span>Tokens: <strong>${totalTokens}</strong></span>`;
@@ -697,30 +578,27 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// 7. Loading & UI State Helpers
+// Loading & UI State Helpers
 function setLoading(loading) {
   state.isLoading = loading;
   submitBtn.disabled = loading;
 
   const spinner = submitBtn.querySelector('.submit-spinner');
-  const arrow = submitBtn.querySelector('.submit-arrow');
   const submitText = submitBtn.querySelector('.submit-text');
 
   if (loading) {
     spinner.classList.remove('hidden');
-    arrow.classList.add('hidden');
-    submitText.textContent = 'Analyzing...';
+    submitText.textContent = 'Submitting...';
     loadingState.classList.remove('hidden');
 
     state.timerStart = Date.now();
     state.timerInterval = setInterval(() => {
       const sec = ((Date.now() - state.timerStart) / 1000).toFixed(1);
-      answerTimer.textContent = `⏱️ ${sec}s`;
+      answerTimer.textContent = `${sec}s`;
     }, 100);
   } else {
     spinner.classList.add('hidden');
-    arrow.classList.remove('hidden');
-    submitText.textContent = 'Ask Gemini';
+    submitText.textContent = 'Submit';
     loadingState.classList.add('hidden');
 
     if (state.timerInterval) {
