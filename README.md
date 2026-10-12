@@ -1,84 +1,84 @@
-# 👁️ Visual Question Answering (VQA) & Visual RAG Tool
+# Visual QA Tool (`vqa-tool-new`)
 
-An interactive web application for **Visual Question Answering (VQA)** and **Visual RAG** powered by Google's **Gemini Multimodal Vision API**.
+A clean, minimalist web application for **Visual Question Answering (VQA)** and **Visual RAG** powered by Google's **Gemini 3.5 Flash Lite** multimodal API.
 
-Upload or paste any image, ask questions about it in natural language, and receive grounded answers backed by visual evidence extracted from the image.
-
----
-
-## ✨ Features
-
-- **Multi-Modal Visual Question Answering**: Ask questions about photos, receipts, documents, charts, graphs, screenshots, and diagrams.
-- **Visual RAG Grounding**: Prompt engineering optimized to ground answers strictly in visual evidence (OCR text, object locations, colors, numbers) and prevent hallucinations.
-- **Multiple Input Methods**:
-  - Drag-and-drop images
-  - File browser
-  - Direct clipboard paste (`Ctrl+V` / `Cmd+V`)
-  - 1-click built-in test samples (Receipt/OCR, Sales Chart, Architecture Diagram)
-- **Multi-Turn Conversation**: Ask follow-up questions about the same image while preserving conversation context.
-- **Flexible API Key Setup**:
-  - Load your Gemini API key via server `.env` file (`GEMINI_API_KEY=...`)
-  - Or input your API key directly in the web UI (stored securely in browser `localStorage`).
-- **Model Support**: Defaults to `gemini-3.5-flash-lite` (providing 500 RPD and 15 RPM for high throughput) with options to toggle `gemini-3.8-flash`, `gemini-flash-latest`, and `gemini-pro-latest`.
-- **Rich Markdown Formatting**: Answers rendered with bold highlights, tables, code blocks, lists, and copy-to-clipboard functionality.
+Upload or paste any image, submit your query, and receive grounded answers backed by visual evidence extracted from the image.
 
 ---
 
-## 🚀 Quick Start
+## Features
+
+- **Grounded Visual RAG**: System prompts ensure answers are strictly backed by visible image details (OCR text transcription, object recognition, chart numbers, and spatial layout), preventing hallucinations.
+- **High-Quota Multimodal Backend**: Defaults to `gemini-3.5-flash-lite`, offering **500 Requests Per Day (RPD)** and **15 Requests Per Minute (RPM)** with fast response times (~1.5s - 2s).
+- **Streamlined User Interface**:
+  - Drag-and-drop image upload
+  - File picker browse button
+  - Clipboard paste support (`Ctrl+V` / `Cmd+V`)
+  - Built-in canvas test samples (Receipt/OCR, Sales Chart, Architecture Diagram)
+  - Quick query prompts (OCR text extraction, image description, chart analysis, object detection)
+  - Keyboard shortcut (`Ctrl/⌘ + Enter`) to submit
+- **Multi-Turn QA History**: Ask follow-up questions about the same image while preserving conversation context.
+- **Rich Markdown Output**: Responses formatted with bold highlights, tables, lists, code blocks, and one-click copy.
+- **Secure Backend Integration**: Gemini API key managed securely on the server via `.env`.
+
+---
+
+## Quick Start
 
 ### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### 2. Configure Gemini API Key (Optional)
-Create a `.env` file from `.env.example`:
+### 2. Configure Your Gemini API Key
+Create your `.env` file from the provided template:
 ```bash
 cp .env.example .env
 ```
-Edit `.env` and add your Gemini API key:
+
+Add your Gemini API key to `.env`:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 PORT=3000
+DEFAULT_MODEL=gemini-3.5-flash-lite
 ```
-> *Note: If you don't configure `.env`, you can simply enter your API key directly in the web interface.*
 
 ### 3. Start the Server
 ```bash
 npm start
 ```
-Or with hot reload in development:
+For automatic reload during development:
 ```bash
 npm run dev
 ```
 
-### 4. Open in Browser
-Visit [http://localhost:3000](http://localhost:3000) in your web browser.
+### 4. Open the Web App
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 🛠️ How It Works (Visual RAG Architecture)
+## Visual RAG Architecture
 
-1. **Image Ingestion**: Images are loaded and normalized into standard base64 data payloads.
-2. **Visual RAG System Prompt**: The server applies strict grounding instructions:
-   - Extracted OCR text must be transcribed verbatim.
-   - Spatial relationships and visual positions must be referenced (e.g. "top-right", "in the table header").
-   - If the visual evidence is insufficient or ambiguous, the model states so explicitly rather than hallucinating.
-3. **Multimodal Gemini Execution**: The Gemini API processes image tokens and prompt tokens simultaneously using its multimodal encoder.
-4. **Answer Rendering**: The response is streamed/returned with latency metrics, token consumption, and Markdown formatting.
+1. **Image Ingestion**: Images are loaded, previewed with dimensions/file size, and normalized into standard base64 payloads.
+2. **Visual Grounding Prompt**: Queries are framed with strict grounding rules:
+   - Visible text and numerical values must be transcribed with high fidelity.
+   - Spatial cues (e.g. "top-right", "in the table header") are cited.
+   - If evidence is not present in the image, the model explicitly notes the limitation rather than speculating.
+3. **Multimodal Inference**: Gemini processes the image parts (`inlineData`) and text instructions in a single multimodal pass.
+4. **Answer Display**: Response is rendered in Markdown with latency tracking and token consumption metrics.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
-vqa-tool/
-├── server.js           # Express server & Gemini multimodal /api/ask route
-├── package.json        # Dependencies (express, cors, dotenv)
-├── .env.example        # Environment variable template
+vqa-tool-new/
+├── server.js           # Express backend with /api/ask and Gemini integration
+├── package.json        # Dependencies and scripts
+├── .env.example        # Environment configuration template
 ├── public/
-│   ├── index.html      # Accessible web UI with upload & QA panels
-│   ├── style.css       # Modern dark theme responsive styling
-│   └── app.js          # Client-side image handling, canvas samples, and QA flow
+│   ├── index.html      # Minimalist web UI
+│   ├── style.css       # Clean dark-mode responsive design
+│   └── app.js          # Image loading, canvas samples, and QA flow
 └── README.md           # Documentation
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "vqa-tool",
+  "name": "vqa-tool-new",
   "version": "1.0.0",
   "description": "Visual Question Answering & Visual RAG tool powered by Gemini multimodal API",
   "main": "server.js",
